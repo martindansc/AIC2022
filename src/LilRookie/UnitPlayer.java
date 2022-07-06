@@ -13,6 +13,9 @@ public class UnitPlayer {
 		else if(uc.getType() == UnitType.KNIGHT) {
 			me = new AKnight(uc);
 		}
+		else if(uc.getType() == UnitType.RANGER) {
+			me = new ARanger(uc);
+		}
 
 		while (true) {
 			me.countMe();

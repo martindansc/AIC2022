@@ -22,7 +22,7 @@ public class MapObjective<T> {
         initialized = true;
         location = newLocation;
         minDist = myLocation.distanceSquared(newLocation);
-        canAttack = Helper.canAttackLocation(uc, uc.getInfo(), newLocation);
+        canAttack = Helper.canAttackLocation(uc, myLocation, newLocation);
         isObstructed = uc.isObstructed(uc.getLocation(), newLocation);
         objectiveInfo = newInfo;
     }
@@ -51,7 +51,7 @@ public class MapObjective<T> {
         }
 
         int distance = location.distanceSquared(newLocation);
-        Boolean canAttackNewLocation = Helper.canAttackLocation(uc, uc.getInfo(), newLocation);
+        Boolean canAttackNewLocation = Helper.canAttackLocation(uc, myLocation, newLocation);
         Boolean isObstructedNewLocation = uc.isObstructed(uc.getLocation(), newLocation);
 
         if(canAttackNewLocation && !canAttack) {
@@ -77,6 +77,37 @@ public class MapObjective<T> {
         if(a == null && b != null) return false;
         if(b == null && a != null) return true;
 
+        if(!a.isObstructed && b.isObstructed) return true;
+        if(!b.isObstructed && a.isObstructed) return false;
+
         return a.minDist < b.minDist;
+    }
+
+    public static boolean isBetterAttackablePassableNearest(MapObjective a, MapObjective b) {
+        if(a == null && b == null) return  false;
+        if(a == null && b != null) return false;
+        if(b == null && a != null) return true;
+
+
+        if(a.canAttack && !b.canAttack) return true;
+        if(b.canAttack && !a.canAttack) return false;
+        if(a.isObstructed && !b.isObstructed) return false;
+        if(b.isObstructed && !a.isObstructed) return true;
+
+        return a.minDist > b.minDist;
+    }
+
+    public static boolean isBetterAttackablePassableFurthest(MapObjective a, MapObjective b) {
+        if(a == null && b == null) return  false;
+        if(a == null && b != null) return false;
+        if(b == null && a != null) return true;
+
+
+        if(a.canAttack && !b.canAttack) return true;
+        if(b.canAttack && !a.canAttack) return false;
+        if(a.isObstructed && !b.isObstructed) return false;
+        if(b.isObstructed && !a.isObstructed) return true;
+
+        return a.minDist > b.minDist;
     }
 }

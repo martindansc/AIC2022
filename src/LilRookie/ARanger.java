@@ -1,10 +1,10 @@
 package LilRookie;
 
-import aic2022.user.*;
+import aic2022.user.UnitController;
 
-public class AKnight extends MyUnit {
+public class ARanger extends MyUnit {
 
-    AKnight(UnitController unitController) {
+    ARanger(UnitController unitController) {
         super(unitController);
     }
 

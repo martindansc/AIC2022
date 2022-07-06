@@ -29,9 +29,10 @@ public class Helper {
         return new Location(x, y);
     }
 
-    static public boolean canAttackLocation(UnitController uc, UnitInfo unit, Location loc) {
-        Location myLocation = unit.getLocation();
+    static public boolean canAttackLocation(UnitController uc, Location myLocation, Location loc) {
         int distance = myLocation.distanceSquared(loc);
+        UnitInfo unit = uc.getInfo();
+
         if (distance <= unit.getStat(UnitStat.ATTACK_RANGE) &&
                 distance >= unit.getStat(UnitStat.MIN_ATTACK_RANGE) &&
                 !uc.isObstructed(loc, myLocation)) {

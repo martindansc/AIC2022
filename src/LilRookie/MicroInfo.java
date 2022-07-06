@@ -10,11 +10,8 @@ public class MicroInfo {
     int numEnemies;
     int minDistToEnemy;
     UnitInfo enemyToAttack;
-
     MapObjective shrineObjective;
-
-    int minDistToChest;
-    ChestInfo chestToGet;
+    MapObjective chestObjective;
 
     UnitController uc;
 
@@ -31,17 +28,18 @@ public class MicroInfo {
         this.isPathfinderDirection = isPathfinderDirection;
         numEnemies = 0;
         minDistToEnemy = Integer.MAX_VALUE;
-        minDistToChest = Integer.MAX_VALUE;
         enemyToAttack = null;
+        chestObjective = new MapObjective<ChestInfo>(uc, location);
+        shrineObjective = new MapObjective<ShrineInfo>(uc, location);
 
         direction = uc.getLocation().directionTo(location);
         canMoveLocation = uc.canMove(direction);
     }
 
     public void updateUnits(UnitInfo unit) {
-        if(!canMoveLocation) return;
+        if(!canMoveLocation || direction == Direction.ZERO) return;
 
-        if(unit.getTeam() != uc.getTeam() && canMoveLocation) {
+        if(unit.getTeam() != uc.getTeam()) {
             Location enemyLocation = unit.getLocation();
             Direction directionToMe = enemyLocation.directionTo(location);
             Location oneStepEnemyLocation = enemyLocation.add(directionToMe);
@@ -59,18 +57,16 @@ public class MicroInfo {
         if(!canMoveLocation) return;
 
         Location chestLocation = chest.getLocation();
-        int distance = location.distanceSquared(chestLocation);
-        if (distance < minDistToChest) {
-            minDistToChest = distance;
-            chestToGet = chest;
-        }
+        chestObjective.getPassableNearest(chestLocation, chest);
     }
 
     public void updateShrines(ShrineInfo shrine) {
         if(!canMoveLocation) return;
 
-        Location shrineLocation = shrine.getLocation();
-        shrineObjective.getAttackablePassableNearest(shrineLocation, shrine);
+        if(shrine.getOwner() != uc.getTeam() || !shrine.hasFullInfluence()) {
+            Location shrineLocation = shrine.getLocation();
+            shrineObjective.getAttackablePassableNearest(shrineLocation, shrine);
+        }
     }
 
     private void canEnemyAttackMe(UnitInfo unit, Location oneStepEnemyLocation) {
@@ -90,7 +86,7 @@ public class MicroInfo {
         if(myType.getStat(UnitStat.ATTACK) == 0) return;
 
         // can I attack him if I move here?
-        if (Helper.canAttackLocation(uc, unit,enemyLocation)) {
+        if (Helper.canAttackLocation(uc, location, enemyLocation)) {
             if(enemyToAttack == null || isBetterToAttack(unit, enemyToAttack)) {
                 setUnitToAttack(unit, enemyLocation);
             }
@@ -151,11 +147,35 @@ public class MicroInfo {
         return aEnemyHealth < bEnemyHealth;
     }
 
+    boolean isUtil() {
+        if(shrineObjective.initialized) return true;
+        if(numEnemies > 0) return  true;
+        if(chestObjective.initialized) return true;
+        if(enemyToAttack != null) return true;
+        return false;
+    }
+
+    Location getAttackLocation() {
+        if(enemyToAttack != null) {
+            return enemyToAttack.getLocation();
+        }
+        else if(shrineObjective.initialized) {
+            return shrineObjective.location;
+        }
+
+        return null;
+    }
+
     double selfPoints() {
         double points = 0;
         points -= numEnemies;
+
         if(isPathfinderDirection) {
             points += 1;
+        }
+
+        if(uc.canSenseLocation(location) && uc.senseTileTypeAtLocation(location) == TileType.SHRINE){
+            points -= 1.5;
         }
 
         if(MapObjective.canAttack(shrineObjective)){
@@ -176,30 +196,29 @@ public class MicroInfo {
             return false;
         }
 
-        if(MapObjective.isCloser(a.shrineObjective, b.shrineObjective)) {
-            pa += 1;
-        }
-        else if(MapObjective.isCloser(b.shrineObjective, a.shrineObjective)) {
-            pb += 1;
-        }
-
-        if(a.minDistToChest < b.minDistToChest) {
+        if(MapObjective.isBetterAttackablePassableFurthest(a.shrineObjective, b.shrineObjective)) {
             pa += 2;
         }
-        else if(b.minDistToChest < a.minDistToChest) {
+        else if(MapObjective.isBetterAttackablePassableFurthest(b.shrineObjective, a.shrineObjective)) {
             pb += 2;
         }
 
+        if(MapObjective.isCloser(a.chestObjective, b.chestObjective)) {
+            pa += 3;
+        }
+        else if(MapObjective.isCloser(b.chestObjective, a.chestObjective)) {
+            pb += 3;
+        }
+
         if(a.minDistToEnemy < b.minDistToEnemy) {
-            pa -= 1;
+            pa -= -1;
         }
 
         if(a.enemyToAttack == null && b.enemyToAttack != null) {
-            pb -= 1;
+            pb += 5;
         }
-
-        if(b.enemyToAttack == null && a.enemyToAttack != null) {
-            pa += 1;
+        else if(b.enemyToAttack == null && a.enemyToAttack != null) {
+            pa += 5;
         }
 
         pa += a.selfPoints();

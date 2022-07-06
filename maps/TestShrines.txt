@@ -1,0 +1,12 @@
+AIC2022
+TestShrines
+30 30
+664 584
+rotational
+2
+S 7 22
+S 22 7
+0
+1
+7 26
+22 3

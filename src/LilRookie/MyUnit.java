@@ -16,7 +16,6 @@ public abstract class MyUnit {
     Direction exploreDirection = Direction.EAST;
     int stepsToChangeLocation = 0;
 
-    MicroInfo[] microInfos = null;
     MicroInfo bestMicro = null;
 
     MyUnit(UnitController unitController) {
@@ -60,15 +59,19 @@ public abstract class MyUnit {
         counters.increaseValueByOne(COUNTER_INDEX);
     }
 
+    MicroInfo getMicroInfo(Location nextLocation, boolean isPathfindingDirection) {
+        return new MicroInfo(uc, nextLocation, isPathfindingDirection);
+    }
+
     void updateMicroInfo() {
         UnitInfo[] units = uc.senseUnits();
         ChestInfo[] chests = uc.senseChests();
         ShrineInfo[] shrines = uc.senseShrines();
 
-        MicroInfo[] microInfos = new MicroInfo[Direction.values().length];
         bestMicro = null;
         for(Direction dir: Direction.values()) {
-            MicroInfo microInfo = new MicroInfo(uc, uc.getLocation().add(dir), false);
+            Location nextLocation = uc.getLocation().add(dir);
+            MicroInfo microInfo = getMicroInfo(nextLocation, exploreDirection.isEqual(dir));
 
             for(UnitInfo unit: units) {
                 microInfo.updateUnits(unit);
@@ -81,8 +84,6 @@ public abstract class MyUnit {
             for(ShrineInfo shrine: shrines) {
                 microInfo.updateShrines(shrine);
             }
-
-            microInfos[dir.ordinal()]  = microInfo;
 
             if(bestMicro == null || MicroInfo.isBetterAThanB(microInfo, bestMicro)) {
                 bestMicro = microInfo;
@@ -108,13 +109,17 @@ public abstract class MyUnit {
     }
 
     public void conquerShrines() {
-        ShrineInfo[] shrines = uc.senseShrines();
-        for(ShrineInfo shrine: shrines) {
-            Location shrineLocation = shrine.getLocation();
-            if(uc.canAttack(shrineLocation) && !shrineLocation.isEqual(uc.getLocation())) {
-                uc.attack(shrineLocation);
-            }
+        if(!uc.canAttack() || !bestMicro.shrineObjective.initialized) {
+            return;
         }
+
+        if(uc.canAttack(bestMicro.shrineObjective.location)) {
+            uc.attack(bestMicro.shrineObjective.location);
+        }
+        else {
+            uc.println("I calculated I could attack but I actually didn't");
+        }
+
     }
 
     public boolean tryAttack(UnitInfo enemy) {
@@ -128,53 +133,30 @@ public abstract class MyUnit {
     public void attack() {
         if(!uc.canAttack()) return;
 
-        boolean attacked = false;
-        UnitInfo bestEnemyToAttack = null;
-
-        if(bestMicro.enemyToAttack != null && uc.canAttack(bestMicro.enemyToAttack.getLocation())) {
-            bestEnemyToAttack = bestMicro.enemyToAttack;
-        }
-
-        UnitInfo[] enemies = uc.senseUnits(uc.getOpponent());
-        for(UnitInfo enemy: enemies) {
-            if(uc.canAttack() && (bestEnemyToAttack == null || bestEnemyToAttack.getHealth() > enemy.getHealth())) {
-                bestEnemyToAttack = enemy;
-                attacked = tryAttack(bestEnemyToAttack);
-            }
-        }
-
-        if(!attacked) {
-            UnitInfo[] neutrals = uc.senseUnits(Team.NEUTRAL);
-            for (UnitInfo enemy : neutrals) {
-                if (uc.canAttack() && (bestEnemyToAttack == null || bestEnemyToAttack.getHealth() > enemy.getHealth())) {
-                    bestEnemyToAttack = enemy;
-                }
-            }
-        }
-
-        tryAttack(bestEnemyToAttack);
-
-        if(bestEnemyToAttack != null) {
-            uc.setOrientation(uc.getLocation().directionTo(bestEnemyToAttack.getLocation()));
+        Location attackLocation = bestMicro.getAttackLocation();
+        if(attackLocation != null && uc.canAttack(attackLocation)) {
+            uc.attack(attackLocation);
         }
     }
 
     public void doMove() {
-
-    }
-
-    public void explore() {
         if(!uc.canMove()) return;
-
-        if(stepsToChangeLocation == 0 || !uc.canMove(exploreDirection)) {
-            exploreDirection = Direction.values()[(int) (uc.getRandomDouble() * 8)];
-            stepsToChangeLocation = 100;
+        if(bestMicro.isUtil()) {
+            if(bestMicro.canMoveLocation) {
+                if(uc.canMove(bestMicro.direction)) uc.move(bestMicro.direction);
+            }
+        }
+        else {
+            if(uc.canMove(exploreDirection) && stepsToChangeLocation > 0) {
+                uc.move(exploreDirection);
+                stepsToChangeLocation--;
+            }
+            else {
+                exploreDirection = Direction.values()[(int) (uc.getRandomDouble() * 8)];
+                stepsToChangeLocation = 100;
+            }
         }
 
-        if(uc.canMove(exploreDirection)) {
-            stepsToChangeLocation--;
-            pathfinding.resetPathfinding();
-            uc.move(exploreDirection);
-        }
+
     }
 }
