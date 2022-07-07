@@ -29,6 +29,50 @@ public class Helper {
         return new Location(x, y);
     }
 
+    static public boolean isPassable(UnitController uc, Location myLocation, Location loc) {
+        Direction dir = myLocation.directionTo(loc);
+        Location currentLocation = myLocation.add(dir);
+        int i = 0;
+        while(!currentLocation.isEqual(loc) && i < 20) {
+
+            if(!uc.senseTileTypeAtLocation(currentLocation).isPassable()) {
+                return false;
+            }
+
+            i++;
+            if(i == 100) {
+                uc.println("Error too many tests");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    static public boolean isAttackable(UnitController uc, Location myLocation, Location loc) {
+        Direction dir = myLocation.directionTo(loc);
+        Location currentLocation = myLocation.add(dir);
+        int i = 0;
+        while(!currentLocation.isEqual(loc) && i < 20) {
+
+            if(!uc.senseTileTypeAtLocation(currentLocation).isPassable()) {
+                return false;
+            }
+
+            if(Helper.canAttackLocation(uc, currentLocation, loc)) {
+                return true;
+            }
+
+            i++;
+            if(i == 100) {
+                uc.println("Error too many tests");
+                return false;
+            }
+        }
+
+        return true;
+    }
+
     static public boolean canAttackLocation(UnitController uc, Location myLocation, Location loc) {
         int distance = myLocation.distanceSquared(loc);
         UnitInfo unit = uc.getInfo();

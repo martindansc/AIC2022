@@ -8,6 +8,7 @@ public class MicroInfo {
     UnitType myType;
 
     int numEnemies;
+    double enemyDanger;
     int minDistToEnemy;
     UnitInfo enemyToAttack;
     MapObjective shrineObjective;
@@ -27,6 +28,7 @@ public class MicroInfo {
         this.myType = uc.getType();
         this.isPathfinderDirection = isPathfinderDirection;
         numEnemies = 0;
+        enemyDanger = 0;
         minDistToEnemy = Integer.MAX_VALUE;
         enemyToAttack = null;
         chestObjective = new MapObjective<ChestInfo>(uc, location);
@@ -111,13 +113,6 @@ public class MicroInfo {
         return location;
     }
 
-    public Location attackLocation() {
-        if(enemyToAttack != null) {
-            return enemyToAttack.getLocation();
-        }
-        return null;
-    }
-
     private static boolean isBetterToAttack(UnitInfo a, UnitInfo b) {
 
         if(a == null && b == null) return false;
@@ -186,44 +181,7 @@ public class MicroInfo {
     }
 
     static boolean isBetterAThanB(MicroInfo a, MicroInfo b) {
-        double pa = 0, pb = 0;
-
-        if(a.canMoveLocation && !b.canMoveLocation) {
-            return true;
-        }
-
-        if(b.canMoveLocation && !a.canMoveLocation) {
-            return false;
-        }
-
-        if(MapObjective.isBetterAttackablePassableFurthest(a.shrineObjective, b.shrineObjective)) {
-            pa += 2;
-        }
-        else if(MapObjective.isBetterAttackablePassableFurthest(b.shrineObjective, a.shrineObjective)) {
-            pb += 2;
-        }
-
-        if(MapObjective.isCloser(a.chestObjective, b.chestObjective)) {
-            pa += 3;
-        }
-        else if(MapObjective.isCloser(b.chestObjective, a.chestObjective)) {
-            pb += 3;
-        }
-
-        if(a.minDistToEnemy < b.minDistToEnemy) {
-            pa -= -1;
-        }
-
-        if(a.enemyToAttack == null && b.enemyToAttack != null) {
-            pb += 5;
-        }
-        else if(b.enemyToAttack == null && a.enemyToAttack != null) {
-            pa += 5;
-        }
-
-        pa += a.selfPoints();
-        pb += b.selfPoints();
-
-        return pa > pb;
+        if(a.selfPoints() >= b.selfPoints()) return true;
+        return false;
     }
 }
